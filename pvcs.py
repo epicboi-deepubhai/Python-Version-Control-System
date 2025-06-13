@@ -1,6 +1,7 @@
 import os
 import hashlib
 import pickle
+import zlib
 
 def init_vcs():
     os.makedirs('.pvcs', exist_ok=True)
@@ -10,11 +11,14 @@ def load_message_map():
     if not os.path.exists('.pvcs/ref'):
         return {}
     with open('.pvcs/ref', 'rb') as f:
+        compressed_ref = f.read()
+        pickle.loads(zlib.decompress(compressed_ref))
         return pickle.load(f)
     
 def save_message_map(message_map):
     with open('.pvcs/ref', 'wb') as f:
-        pickle.dump(message_map, f)
+        compressed_ref = zlib.compress(pickle.dumps(message_map))
+        f.write(compressed_ref)
 
 def snapshot(directory, message=None):
     snapshot_hash = hashlib.sha256()
@@ -39,7 +43,8 @@ def snapshot(directory, message=None):
         save_message_map(ref)
         
     with open(f'.pvcs/{hash_digest}', 'wb') as f:
-        pickle.dump(snapshot_data, f)
+        compressed_data = zlib.compress(pickle.dumps(snapshot_data))
+        f.write(compressed_data)
     print(f"Snapshot created with hash {hash_digest}")
 
 def revert_to_snapshot_by_digest(hash_digest):
@@ -48,7 +53,8 @@ def revert_to_snapshot_by_digest(hash_digest):
         print("Snapshot does not exist.")
         return
     with open(snapshot_path, 'rb') as f:
-        snapshot_data = pickle.load(f)
+        compressed_data = f.read()
+        snapshot_data = pickle.loads(zlib.decompress(compressed_data))
     for file_path, content in snapshot_data['files'].items():
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'wb') as f:
@@ -82,10 +88,12 @@ if __name__ == "__main__":
     elif command == "snapshot":
         if "-m" in sys.argv:
             snapshot('.', message=sys.argv[3])
-        snapshot('.')
+        else:
+            snapshot('.')
     elif command == "revert":
         if "-m" in sys.argv:
             revert_to_snapshot_by_message(sys.argv[3])
-        revert_to_snapshot_by_digest(sys.argv[2])
+        else:
+            revert_to_snapshot_by_digest(sys.argv[2])
     else:
         print("Unknown command.")
