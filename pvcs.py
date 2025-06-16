@@ -1,6 +1,7 @@
 import os
 import hashlib
 import pickle
+import re
 import zlib
 
 def init_vcs():
@@ -32,15 +33,34 @@ def store_blob(content):
             f.write(compressed_blob)
     return blob_hash
 
+def loadDotIgnore():
+    ignored_contents = ['.pvcsignore', '.git', '.pvcs']
+    try:
+        with open('.pvcsignore', 'r') as f:
+            ignored_contents.extend([single_path for line in f.readlines() for single_path in line.split()])
+    except FileNotFoundError: 
+        pass
+    return ignored_contents
+
+def isIgnored(check_path, ignored):
+    for path in ignored:
+        if re.search(path, check_path):
+            return True
+    return False
+    
+
 def snapshot(directory, message=None):
     snapshot_data = {'files': {}}
+    ignored_contents = loadDotIgnore()
 
     for root, _, files in os.walk(directory):
-        if '.pvcs' in root or '.git' in root: #annoying git kept giving errors
+        if isIgnored(root, ignored_contents):
             continue
         for file in files:
             file_path = os.path.join(root, file)
             rel_path = os.path.relpath(file_path, directory)
+            if isIgnored(rel_path, ignored_contents):
+                continue
             with open(file_path, 'rb') as f:
                 content = f.read()
                 blob_hash = store_blob(content)
