@@ -1,6 +1,7 @@
 import sys
 from pvcs.commands import init, take_snapshot, revert
 from pvcs.core import log
+from pvcs.diff import diff, diff_detailed
 
 def run():
     args = sys.argv[1:]
@@ -43,6 +44,10 @@ def run():
                 print("Usage: pvcs.py log -n <number>")
                 return
         log(n)
+    elif command == 'diff':
+        args.extend((None, None))
+        f1, f2 = args[1:3] 
+        diff(f1, f2)
     else:
         print("Unknown command.")
 
