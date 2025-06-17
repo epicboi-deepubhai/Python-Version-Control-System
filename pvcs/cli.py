@@ -1,5 +1,6 @@
 import sys
 from pvcs.commands import init, take_snapshot, revert
+from pvcs.core import log
 
 def run():
     args = sys.argv[1:]
@@ -32,5 +33,16 @@ def run():
             revert(args[1])
         else:
             print("Missing snapshot hash or -m flag")
+    elif command == "log":
+        n = 10
+        if "-n" in args:
+            try:
+                idx = args.index("-n")
+                n = int(args[idx + 1])
+            except (IndexError, ValueError):
+                print("Usage: pvcs.py log -n <number>")
+                return
+        log(n)
     else:
         print("Unknown command.")
+
